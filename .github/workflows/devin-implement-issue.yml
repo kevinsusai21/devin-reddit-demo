@@ -14,6 +14,7 @@ jobs:
     if: github.event.label.name == 'devin-approved'
     steps:
       - name: Implement issue with Devin
+        id: devin
         env:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
           DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
@@ -67,6 +68,7 @@ jobs:
             SESSION_URL=$(echo "$BODY" | jq -r '.url // "N/A"')
             echo "Devin session created successfully!"
             echo "Session URL: ${SESSION_URL}"
+            echo "session_url=${SESSION_URL}" >> $GITHUB_OUTPUT
             echo "### Devin Implementation Session" >> $GITHUB_STEP_SUMMARY
             echo "Session started for issue #${ISSUE_NUMBER}: ${SESSION_URL}" >> $GITHUB_STEP_SUMMARY
           else
@@ -74,3 +76,53 @@ jobs:
             echo "$BODY"
             exit 1
           fi
+
+      - name: Notify Slack
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          SESSION_URL: ${{ steps.devin.outputs.session_url }}
+          STEP_STATUS: ${{ steps.devin.outcome }}
+        run: |
+          if [ "$STEP_STATUS" = "success" ]; then
+            EMOJI=":hammer_and_wrench:"
+            STATUS_TEXT="Devin is implementing the approved plan and will create a PR."
+            COLOR="#2EB67D"
+          else
+            EMOJI=":x:"
+            STATUS_TEXT="Failed to create Devin implementation session. Check the <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run> for details."
+            COLOR="#E01E5A"
+          fi
+
+          SESSION_LINK=""
+          if [ -n "$SESSION_URL" ] && [ "$SESSION_URL" != "N/A" ]; then
+            SESSION_LINK="\n:robot_face: <${SESSION_URL}|View Devin Session>"
+          fi
+
+          PAYLOAD=$(jq -n \
+            --arg emoji "$EMOJI" \
+            --arg title "$ISSUE_TITLE" \
+            --arg number "$ISSUE_NUMBER" \
+            --arg url "$ISSUE_URL" \
+            --arg status "$STATUS_TEXT" \
+            --arg session "$SESSION_LINK" \
+            --arg color "$COLOR" \
+            '{
+              attachments: [{
+                color: $color,
+                blocks: [{
+                  type: "section",
+                  text: {
+                    type: "mrkdwn",
+                    text: ("\($emoji) *Implementation Triggered* \u2014 <\($url)|#\($number): \($title)>\n\($status)\($session)")
+                  }
+                }]
+              }]
+            }')
+
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD"
