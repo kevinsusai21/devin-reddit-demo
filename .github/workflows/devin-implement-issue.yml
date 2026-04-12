@@ -99,7 +99,7 @@ jobs:
 
           SESSION_LINK=""
           if [ -n "$SESSION_URL" ] && [ "$SESSION_URL" != "N/A" ]; then
-            SESSION_LINK="\n:robot_face: <${SESSION_URL}|View Devin Session>"
+            SESSION_LINK=":robot_face: <${SESSION_URL}|View Devin Session>"
           fi
 
           PAYLOAD=$(jq -n \
@@ -117,7 +117,7 @@ jobs:
                   type: "section",
                   text: {
                     type: "mrkdwn",
-                    text: ("\($emoji) *Implementation Triggered* \u2014 <\($url)|#\($number): \($title)>\n\($status)\($session)")
+                    text: ("\($emoji) *Implementation Triggered* \u2014 <\($url)|#\($number): \($title)>\n\($status)\n\($session)")
                   }
                 }]
               }]
