@@ -1,0 +1,4 @@
+django>=5.0,<7.0
+strawberry-graphql>=0.300
+strawberry-graphql-django>=0.80
+django-cors-headers>=4.0
