@@ -35,7 +35,7 @@ class Mutation:
         """Create a comment on a post, optionally as a reply."""
         post = models.Post.objects.get(pk=input.post_id)
         parent = None
-        if input.parent_id:
+        if input.parent_id is not None:
             parent = models.Comment.objects.get(pk=input.parent_id)
         return models.Comment.objects.create(
             post=post,
@@ -50,7 +50,7 @@ class Mutation:
         Cast a vote on a post or comment.
         direction=0 removes an existing vote.
         """
-        if input.post_id:
+        if input.post_id is not None:
             post = models.Post.objects.get(pk=input.post_id)
             if input.direction == 0:
                 models.Vote.objects.filter(user=input.user, post=post).delete()
@@ -61,7 +61,7 @@ class Mutation:
                     defaults={"direction": input.direction},
                 )
             _recalc_post_score(post)
-        elif input.comment_id:
+        elif input.comment_id is not None:
             comment = models.Comment.objects.get(pk=input.comment_id)
             if input.direction == 0:
                 models.Vote.objects.filter(user=input.user, comment=comment).delete()
